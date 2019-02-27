@@ -1,5 +1,5 @@
 require File.expand_path(File.join(File.dirname(__FILE__), '..', 'mongodb'))
-Puppet::Type.type(:mongodb_user).provide(:mongodb, parent: Puppet::Provider::Mongodb) do
+Puppet::Type.type(:mongodb_adminuser).provide(:mongodb, parent: Puppet::Provider::Mongodb) do
   desc 'Manage users for a MongoDB database.'
 
   defaultfor kernel: 'Linux'
@@ -20,7 +20,7 @@ Puppet::Type.type(:mongodb_user).provide(:mongodb, parent: Puppet::Provider::Mon
             scram_credentials: user['credentials']['SCRAM-SHA-1'])
       end
     else
-      Puppet.warning 'User info is available only from master host'
+      Puppet.warning 'User info is not available - PANIC!'
       return []
     end
   end
@@ -37,33 +37,21 @@ Puppet::Type.type(:mongodb_user).provide(:mongodb, parent: Puppet::Provider::Mon
   mk_resource_methods
 
   def create
-    if db_ismaster
-      password_hash = @resource[:password_hash]
-      if !password_hash && @resource[:password]
-        password_hash = @resource[:password]
-      end
-
-      command = {
-        createUser: @resource[:username],
-        pwd: password_hash,
-        customData: {
-          createdBy: "Puppet Mongodb_user['#{@resource[:name]}']"
-        },
-        roles: @resource[:roles]
-      }
-
-      mongo_eval("db.runCommand(#{command.to_json})", @resource[:database])
-    else
-      Puppet.warning 'User creation is available only from master host'
-
-      @property_hash[:ensure] = :present
-      @property_hash[:username] = @resource[:username]
-      @property_hash[:database] = @resource[:database]
-      @property_hash[:password_hash] = ''
-      @property_hash[:roles] = @resource[:roles]
-
-      exists?
+    password_hash = @resource[:password_hash]
+    if !password_hash && @resource[:password]
+      password_hash = @resource[:password]
     end
+
+    command = {
+      createUser: @resource[:username],
+      pwd: password_hash,
+      customData: {
+        createdBy: "Puppet Mongodb_user['#{@resource[:name]}']"
+      },
+      roles: @resource[:roles]
+    }
+
+    mongo_eval("db.runCommand(#{command.to_json})", @resource[:database])
   end
 
   def destroy
@@ -93,7 +81,8 @@ Puppet::Type.type(:mongodb_user).provide(:mongodb, parent: Puppet::Provider::Mon
     else
       command = {
         updateUser: @resource[:username],
-        pwd: @resource[:password]
+        pwd: @resource[:password],
+        digestpassword: true
       }
 
       mongo_eval("db.runCommand(#{command.to_json})", @resource[:database])
