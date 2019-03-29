@@ -57,7 +57,8 @@ Facter.add('mongodb_is_master') do
         Facter::Core::Execution.exec("mongo --quiet #{options} --eval \"#{e}printjson(db.adminCommand({ ping: 1 }))\"")
 
         if $CHILD_STATUS.success?
-          Facter::Core::Execution.exec("mongo --quiet #{options} --eval \"#{e}db.isMaster().ismaster\"")
+          master = Facter::Core::Execution.exec("mongo --quiet #{options} --eval \"#{e}db.isMaster().ismaster\"")
+          master.sub("Error: Authentication failed.\n", "")
         else
           'not_responding'
         end
