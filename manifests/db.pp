@@ -31,11 +31,11 @@ define mongodb::db (
     fail("Parameter 'password_hash' or 'password' should be provided to mongodb::db.")
   }
 
-  if $user == 'admin' {
+  if $db_name == 'admin' {
     mongodb_adminuser { "User ${user} on db ${db_name}":
       ensure        => present,
-      password_hash => $hash,
-      password => $password,
+      password_hash => $password_hash,
+      password      => $password,
       username      => $user,
       database      => $db_name,
       roles         => $roles,
@@ -44,8 +44,8 @@ define mongodb::db (
   else {
     mongodb_user { "User ${user} on db ${db_name}":
       ensure        => present,
-      password_hash => $hash,
-      password => $password,
+      password_hash => $password_hash,
+      password      => $password,
       username      => $user,
       database      => $db_name,
       roles         => $roles,
